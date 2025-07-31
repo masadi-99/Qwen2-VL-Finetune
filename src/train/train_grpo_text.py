@@ -151,6 +151,9 @@ def train():
         data_args=data_args
     )
 
+    # Load reward functions for GRPO training
+    # Available functions: simple_text_reward (recommended), length_reward, 
+    # helpfulness_reward, accuracy_reward (with math_verify fallback), format_reward
     reward_funcs = load_reward_funcs("src.train.reward_funcs")
 
     # Use text-only GRPO trainer
