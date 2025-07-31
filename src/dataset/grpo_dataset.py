@@ -155,11 +155,15 @@ class GRPODataset(Dataset):
         user_input = conversations[0]
         gpt_response = conversations[1]
 
-        text_content = {"type": "text", "text": user_input['content']}
-
-        contents.append(text_content)
-
-        user_prompt = [{"role": "user", "content": contents}]
+        # Check if this is text-only data (no images/videos)
+        if len(contents) == 0:
+            # Text-only format for tokenizer compatibility
+            user_prompt = [{"role": "user", "content": user_input['content']}]
+        else:
+            # Multimodal format with image/video content
+            text_content = {"type": "text", "text": user_input['content']}
+            contents.append(text_content)
+            user_prompt = [{"role": "user", "content": contents}]
 
         if len(SYSTEM_MESSAGE) > 0:
             system_message = {"role": "system", "content": SYSTEM_MESSAGE}
