@@ -5,8 +5,9 @@ import ast
 import pathlib
 from transformers import AutoTokenizer, BitsAndBytesConfig, Qwen2ForCausalLM, HfArgumentParser
 
-from src.trainer import QwenGRPOTextTrainer
-from src.dataset.grpo_text_dataset import make_grpo_text_data_module  # Direct import to avoid dependency issues
+# USE ORIGINAL GRPO TRAINER (not custom text trainer)
+from src.trainer import QwenGRPOTrainer  # ✅ Changed from QwenGRPOTextTrainer
+from src.dataset.grpo_text_dataset import make_grpo_text_data_module
 from src.params import TextDataArguments, TextModelArguments, GRPOTextArguments
 from train.train_utils import get_peft_state_maybe_zero_3, get_peft_state_non_lora_maybe_zero_3, safe_save_model_for_hf_trainer
 from src.utils import load_reward_funcs
@@ -83,7 +84,7 @@ def train():
             )
         ))
 
-    # Load text-only Qwen2.5 model
+    # Load text-only Qwen2.5 model  
     rank0_print(f"Loading text-only model: {model_args.model_id}")
     model = Qwen2ForCausalLM.from_pretrained(
         model_args.model_id,
@@ -153,8 +154,8 @@ def train():
 
     reward_funcs = load_reward_funcs("src.train.reward_funcs")
 
-    # Use text-only GRPO trainer
-    trainer = QwenGRPOTextTrainer(
+    # ✅ USE ORIGINAL QWEN GRPO TRAINER (not custom text trainer)
+    trainer = QwenGRPOTrainer(
         model=model,
         train_dataset=dataset_module["train_dataset"],
         eval_dataset=dataset_module["eval_dataset"],
