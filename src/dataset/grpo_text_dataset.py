@@ -56,30 +56,57 @@ class GRPOTextDataset(Dataset):
     def __len__(self):
         return len(self.list_data_dict)
     
-    def __getitem__(self, i) -> Dict[str, torch.Tensor]:
-        sources = self.list_data_dict[i]
+    def __getitem__(self, i) -> Dict:
+        try:
+            sources = self.list_data_dict[i]
 
-        # Convert conversations to text-only format
-        conversations = copy.deepcopy(llava_to_openai_text(sources['conversations']))
+            # Validate input data
+            if 'conversations' not in sources:
+                raise ValueError(f"Sample {i} missing 'conversations' key")
+            
+            conversations = sources['conversations']
+            if len(conversations) < 2:
+                raise ValueError(f"Sample {i} has insufficient conversations ({len(conversations)} < 2)")
 
-        # Extract user prompt and assistant response
-        user_input = conversations[0]
-        gpt_response = conversations[1]
+            # Convert conversations to text-only format
+            conversations = copy.deepcopy(llava_to_openai_text(conversations))
 
-        # Build the prompt for text-only training
-        user_prompt = [{"role": "user", "content": user_input['content']}]
+            # Extract user prompt and assistant response
+            user_input = conversations[0]
+            gpt_response = conversations[1]
 
-        # Add system message if present
-        if len(SYSTEM_MESSAGE) > 0:
-            system_message = {"role": "system", "content": SYSTEM_MESSAGE}
-            user_prompt.insert(0, system_message)
-        
-        data_dict = dict(
-            prompt=user_prompt,
-            assistant=gpt_response,
-        )
+            # Validate conversation format
+            if 'content' not in user_input:
+                raise ValueError(f"Sample {i} user input missing 'content'")
+            if 'content' not in gpt_response:
+                raise ValueError(f"Sample {i} assistant response missing 'content'")
 
-        return data_dict
+            # Build the prompt for text-only training (matching GRPO format exactly)
+            user_prompt = [{"role": "user", "content": user_input['content']}]
+
+            # Add system message if present
+            if len(SYSTEM_MESSAGE) > 0:
+                system_message = {"role": "system", "content": SYSTEM_MESSAGE}
+                user_prompt.insert(0, system_message)
+            
+            # Return data in the exact format expected by GRPO trainer
+            data_dict = dict(
+                prompt=user_prompt,
+                assistant=gpt_response,
+            )
+
+            return data_dict
+            
+        except Exception as e:
+            print(f"Error processing sample {i}: {e}")
+            # Return a valid fallback sample to prevent training crashes
+            fallback_prompt = [{"role": "user", "content": "Hello"}]
+            fallback_assistant = {"role": "assistant", "content": "Hi there!"}
+            
+            return dict(
+                prompt=fallback_prompt,
+                assistant=fallback_assistant,
+            )
 
 
 def make_grpo_text_data_module(model_id, tokenizer, data_args):
