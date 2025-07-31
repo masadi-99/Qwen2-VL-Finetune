@@ -6,7 +6,7 @@ import pathlib
 from transformers import AutoTokenizer, BitsAndBytesConfig, Qwen2ForCausalLM, HfArgumentParser
 
 from src.trainer import QwenGRPOTextTrainer
-from src.dataset import make_grpo_text_data_module
+from src.dataset.grpo_text_dataset import make_grpo_text_data_module  # Direct import to avoid dependency issues
 from src.params import TextDataArguments, TextModelArguments, GRPOTextArguments
 from train.train_utils import get_peft_state_maybe_zero_3, get_peft_state_non_lora_maybe_zero_3, safe_save_model_for_hf_trainer
 from src.utils import load_reward_funcs
