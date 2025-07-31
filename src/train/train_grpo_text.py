@@ -5,11 +5,12 @@ import ast
 import pathlib
 from transformers import AutoTokenizer, BitsAndBytesConfig, Qwen2ForCausalLM, HfArgumentParser
 
-# USE ORIGINAL GRPO TRAINER (not custom text trainer)
-from src.trainer import QwenGRPOTrainer  # ✅ Changed from QwenGRPOTextTrainer
-from src.dataset.grpo_text_dataset import make_grpo_text_data_module
-from src.params import TextDataArguments, TextModelArguments, GRPOTextArguments
+# Use existing working GRPO trainer and dataset - just modify for text-only
+from src.trainer import QwenGRPOTrainer
+from src.dataset import make_grpo_data_module
+from src.params import DataArguments, ModelArguments, GRPOArguments
 from train.train_utils import get_peft_state_maybe_zero_3, get_peft_state_non_lora_maybe_zero_3, safe_save_model_for_hf_trainer
+# NO vision forward patches for text-only
 from src.utils import load_reward_funcs
 
 local_rank = None
@@ -39,8 +40,11 @@ def set_requires_grad(parameters, requires_grad):
     for p in parameters:
         p.requires_grad = requires_grad
 
+# NO configure_vision_tower - text-only
+# NO configure_merger - text-only
+
 def configure_llm(model, training_args):
-    """Configure LLM parameters for text-only training"""
+    """Configure LLM parameters for text-only training - simplified from multimodal version"""
     lm_head = model.lm_head.parameters()
     set_requires_grad(lm_head, not training_args.freeze_llm)
 
@@ -51,11 +55,11 @@ def train():
     global local_rank
 
     parser = HfArgumentParser(
-        (TextModelArguments, TextDataArguments, GRPOTextArguments))
+        (ModelArguments, DataArguments, GRPOArguments))
     
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
     
-    # Text-only models don't need mixed modality forward patches
+    # NO mixed modality forward for text-only
     training_args.use_liger_loss = False
     
     if training_args.lora_enable and not training_args.freeze_llm:
@@ -84,7 +88,7 @@ def train():
             )
         ))
 
-    # Load text-only Qwen2.5 model  
+    # Load text-only model instead of VL model
     rank0_print(f"Loading text-only model: {model_args.model_id}")
     model = Qwen2ForCausalLM.from_pretrained(
         model_args.model_id,
@@ -94,6 +98,8 @@ def train():
     )
 
     model.config.use_cache = False
+    
+    # NO vision forward patches for text-only
     
     # Configure only LLM (no vision tower/merger for text-only)
     configure_llm(model, training_args)
@@ -145,23 +151,23 @@ def train():
                     if training_args.bf16 and module.weight.dtype == torch.float32:
                         module = module.to(torch.bfloat16)
 
-    # Create text-only dataset
-    dataset_module = make_grpo_text_data_module(
+    # Use existing working data module - it will handle text-only automatically when no images
+    dataset_module = make_grpo_data_module(
         model_id=model_args.model_id,
-        tokenizer=tokenizer,
+        processor=tokenizer,  # Pass tokenizer as processor for text-only
         data_args=data_args
     )
 
     reward_funcs = load_reward_funcs("src.train.reward_funcs")
 
-    # ✅ USE ORIGINAL QWEN GRPO TRAINER (not custom text trainer)
+    # Use existing working trainer
     trainer = QwenGRPOTrainer(
         model=model,
         train_dataset=dataset_module["train_dataset"],
         eval_dataset=dataset_module["eval_dataset"],
         reward_funcs=reward_funcs,
         args=training_args,
-        processing_class=tokenizer,  # Use tokenizer instead of processor
+        processing_class=tokenizer,  # Use tokenizer for text-only
         peft_config=peft_config,
     )
 

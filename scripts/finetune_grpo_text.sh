@@ -1,14 +1,9 @@
 #!/bin/bash
-# Text-Only GRPO Training Script for Qwen2.5-7B-Instruct
-# Optimized for text generation without vision components
 
 MODEL_NAME="Qwen/Qwen2.5-7B-Instruct"
 
-export PYTHONPATH=src:$PYTHONPATH
-
-echo "🎯 Starting Text-Only GRPO Training"
+echo "🚀 Starting Text-Only GRPO Training"
 echo "Model: $MODEL_NAME"
-echo "Removing vision processing for maximum efficiency"
 
 deepspeed src/train/train_grpo_text.py \
     --deepspeed scripts/zero3.json \
@@ -16,6 +11,7 @@ deepspeed src/train/train_grpo_text.py \
     --data_path sample_grpo_train_data.json \
     --eval_data_path sample_grpo_eval_data.json \
     --freeze_llm False \
+    --lora_enable False \
     --bf16 True \
     --fp16 False \
     --disable_flash_attn2 False \
@@ -26,7 +22,6 @@ deepspeed src/train/train_grpo_text.py \
     --gradient_accumulation_steps 8 \
     --max_completion_length 512 \
     --max_prompt_length 1024 \
-    --max_seq_length 4096 \
     --learning_rate 1e-5 \
     --remove_unused_columns False \
     --weight_decay 0.01 \
@@ -47,17 +42,10 @@ deepspeed src/train/train_grpo_text.py \
     --temperature 0.9 \
     --top_p 1.0 \
     --top_k 50 \
-    --repetition_penalty 1.05 \
-    --epsilon 0.1 \
-    --lora_enable False \
-    --bits 16
-
-echo "🎯 GRPO Text Training Configuration:"
-echo "  - Model: Text-only Qwen2.5-7B"
-echo "  - Memory: ~60% less than VL model"
-echo "  - Speed: ~3x faster per token"
-echo "  - Batch size: 2x larger possible"
-echo "  - Max length: 4096 tokens"
-echo "  - GRPO generations: 4"
-echo "  - LoRA: Disabled (full fine-tuning)"
-echo "  - Data: Using sample_grpo_*_data.json files" 
+    --repetition_penalty 1.0 \
+    --epsilon 0.0001 \
+    --image_folder ./dummy_images \
+    --image_min_pixels 3136 \
+    --image_max_pixels 12845056 \
+    --video_min_pixels 100352 \
+    --video_max_pixels 602112 
