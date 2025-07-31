@@ -22,16 +22,27 @@ CLASS_2_ID = {
 USER_MESSAGE = """Enter your prompt here. This will be used when your data does not have a prompt field."""
 
 def get_image_content(image_path, min_pixel, max_pixel, width, height):
+    # FIXED: Preserve original image dimensions for coordinate preservation
+    from PIL import Image
+    
+    # Load and get original dimensions
+    img = Image.open(image_path)
+    orig_width, orig_height = img.size
+    
     content = {
         "type": "image", 
         "image": image_path,
-        "min_pixels": min_pixel,
-        "max_pixels": max_pixel
+        # REMOVED min_pixels and max_pixels to prevent automatic resizing
+        # "min_pixels": min_pixel,
+        # "max_pixels": max_pixel
+        # Force explicit dimensions to preserve coordinates
+        "resized_width": orig_width,
+        "resized_height": orig_height
     }
 
+    # Ignore any resize requests to preserve coordinates
     if width is not None and height is not None:
-        content["resized_width"] = width
-        content["resized_height"] = height
+        print(f"WARNING: Classification dataset resize request ignored for coordinate preservation")
 
     return content
 
@@ -151,6 +162,7 @@ class ClassificationDataset(Dataset):
             images=image_inputs,
             videos=video_inputs,
             return_tensors="pt",
+            do_resize=False,  # FIXED: Prevent resizing for coordinate preservation
             **video_kwargs
         )
 

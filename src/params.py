@@ -262,3 +262,76 @@ class DataArguments:
     video_resized_height: int = field(default=None)
     fps: Optional[int] = field(default=None, metadata={"help": "Frames per second for video data."})
     nframes: Optional[int] = field(default=None, metadata={"help": "Number of frames for video data."})
+
+
+@dataclass
+class TextModelArguments:
+    """Model arguments for text-only models"""
+    model_id: Optional[str] = field(default="Qwen/Qwen2.5-7B-Instruct")
+
+
+@dataclass
+class TextDataArguments:
+    """Data arguments for text-only training"""
+    data_path: str = field(
+        default=None, metadata={"help": "Path to the training data."}
+    )
+    eval_data_path: Optional[str] = field(
+        default=None, metadata={"help": "Path to the evaluation data."}
+    )
+    lazy_preprocess: bool = False
+    max_seq_length: int = field(
+        default=4096, 
+        metadata={"help": "Maximum sequence length. Sequences will be right padded (and possibly truncated)."}
+    )
+
+
+@dataclass
+class GRPOTextArguments(GRPOConfigTRL):
+    """GRPO arguments for text-only training"""
+    cache_dir: Optional[str] = field(default=None)
+    optim: str = field(default="adamw_torch")
+    adam_beta1: float = field(default=0.9)
+    adam_beta2: float = field(default=0.999)
+    adam_epsilon: float = field(default=1e-8)
+
+    freeze_llm: bool = field(default=False)
+    disable_flash_attn2: bool = field(default=False)
+    
+    double_quant: bool = field(
+        default=True,
+        metadata={"help": "Compress the quantization statistics through double quantization."}
+    )
+    quant_type: str = field(
+        default="nf4",
+        metadata={"help": "Quantization data type to use. Should be one of `fp4` or `nf4`."}
+    )
+    bits: int = field(
+        default=16,
+        metadata={"help": "How many bits to use."}
+    )
+    lora_enable: bool = False
+    use_dora: bool = False
+    lora_rank: int = 64
+    lora_alpha: int = 16
+    lora_dropout: float = 0.05
+    lora_weight_path: str = ""
+    lora_bias: str = "none"
+    lora_namespan_exclude: str = field(default=None, metadata={"help": "List of namespan to exclude for LoRA"})
+    num_lora_modules: int = -1
+    
+    # GRPO specific parameters
+    beta: float = field(
+        default=0.04,
+        metadata={
+            "help": "KL coefficient. If `0.0`, the reference model is not loaded, reducing memory usage and improving "
+            "training speed, but may be numerically unstable for long training runs."
+        },
+    )
+    temperature: float = 0.9
+    top_p: float = 1.0
+    top_k: int = 50
+    min_p: Optional[float] = None
+    repetition_penalty: float = 1.0
+    max_completion_length: int = 512
+    max_prompt_length: int = 1024

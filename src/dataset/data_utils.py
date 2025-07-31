@@ -69,20 +69,27 @@ def pad_sequence(sequences, padding_side='right', padding_value=0):
     return output
 
 def get_image_info(image_path, min_pixel, max_pixel, width, height):
-    # Using this because of process_vision_info function
-    # Need to fix this in the future
-
-
+    # COMPREHENSIVE FIX: Completely bypass resizing to preserve coordinates
+    from PIL import Image
+    
+    # Load and preserve original image
+    img = Image.open(image_path)
+    orig_width, orig_height = img.size
+    
+    print(f"DEBUG: Processing {image_path} - Original: {orig_width}x{orig_height}")
+    
     content = {
         "type": "image", 
         "image": image_path,
-        "min_pixels": min_pixel,
-        "max_pixels": max_pixel
+        # COMPLETELY REMOVED min_pixels and max_pixels
+        # Force explicit dimensions to prevent ANY automatic resizing
+        "resized_width": orig_width,
+        "resized_height": orig_height
     }
 
+    # Always use original dimensions, ignore any width/height parameters
     if width is not None and height is not None:
-        content["resized_width"] = width
-        content["resized_height"] = height
+        print(f"WARNING: Ignoring resize request {width}x{height}, using original {orig_width}x{orig_height}")
     
     messages = [
         {"role": "user", 
@@ -95,14 +102,14 @@ def get_image_info(image_path, min_pixel, max_pixel, width, height):
     return image_input[0]
 
 def get_video_info(video_path, min_pixels, max_pixels, width, height, fps, nframes):
-    # Using this because of process_vision_info function
-    # Need to fix this in the future
-
+    # FIXED: Preserve original video dimensions to prevent coordinate misalignment
+    
     content = {
         "type": "video", 
         "video": video_path,
-        "min_pixels": min_pixels,
-        "max_pixels": max_pixels,
+        # REMOVED min_pixels and max_pixels to prevent automatic resizing
+        # "min_pixels": min_pixels,
+        # "max_pixels": max_pixels,
     }
 
     if nframes is not None:
@@ -110,9 +117,10 @@ def get_video_info(video_path, min_pixels, max_pixels, width, height, fps, nfram
     else:
         content["fps"] = fps
 
+    # Force original dimensions for videos too (if resizing requested)
     if width is not None and height is not None:
-        content["resized_width"] = width
-        content["resized_height"] = height
+        print(f"WARNING: Video resize request ignored for coordinate preservation")
+        # Don't set resized dimensions to prevent scaling
     
     messages = [
         {"role": "user", 

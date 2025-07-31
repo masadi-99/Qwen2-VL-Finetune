@@ -32,29 +32,38 @@ def llava_to_openai(conversations, is_video=False):
 
 
 def get_image_content(image_path, min_pixel, max_pixel, width, height):
-    # Using this because of process_vision_info function
-    # Need to fix this in the future
+    # FIXED: Preserve original image dimensions for coordinate preservation
+    from PIL import Image
+    
+    # Load and get original dimensions
+    img = Image.open(image_path)
+    orig_width, orig_height = img.size
+    
     content = {
         "type": "image", 
         "image": image_path,
-        "min_pixels": min_pixel,
-        "max_pixels": max_pixel
+        # REMOVED min_pixels and max_pixels to prevent automatic resizing
+        # "min_pixels": min_pixel,
+        # "max_pixels": max_pixel
+        # Force explicit dimensions to preserve coordinates
+        "resized_width": orig_width,
+        "resized_height": orig_height
     }
 
+    # Ignore any resize requests to preserve coordinates
     if width is not None and height is not None:
-        content["resized_width"] = width
-        content["resized_height"] = height
+        print(f"WARNING: GRPO dataset resize request ignored for coordinate preservation")
 
     return content
 
 def get_video_content(video_path, min_pixels, max_pixels, width, height, fps, nframes):
-    # Using this because of process_vision_info function
-    # Need to fix this in the future
+    # FIXED: Preserve original video dimensions for coordinate preservation
     content = {
         "type": "video", 
         "video": video_path,
-        "min_pixels": min_pixels,
-        "max_pixels": max_pixels,
+        # REMOVED min_pixels and max_pixels to prevent automatic resizing
+        # "min_pixels": min_pixels,
+        # "max_pixels": max_pixels,
     }
 
     if nframes is not None:
@@ -62,9 +71,9 @@ def get_video_content(video_path, min_pixels, max_pixels, width, height, fps, nf
     else:
         content["fps"] = fps
 
+    # Ignore resize requests to preserve coordinates
     if width is not None and height is not None:
-        content["resized_width"] = width
-        content["resized_height"] = height
+        print(f"WARNING: GRPO video resize request ignored for coordinate preservation")
     
 
     return content
